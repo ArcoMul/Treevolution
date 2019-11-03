@@ -1,13 +1,14 @@
+const dpr = window.devicePixelRatio || 1;
 const canvas = document.getElementsByTagName("canvas")[0];
-const ctx = canvas.getContext("2d");
 const width = (canvas.width = window.innerWidth);
 const height = (canvas.height = window.innerHeight);
+const boundingRect = canvas.getBoundingClientRect();
+canvas.width = boundingRect.width * dpr;
+canvas.height = boundingRect.height * dpr;
+const ctx = canvas.getContext("2d");
+ctx.scale(dpr, dpr);
 
-// var w = c.width = window.innerWidth,
-// 		h = c.height = window.innerHeight,
-// 		ctx = c.getContext( '2d' ),
-
-const GROW_SPEED = 3; //0.5;
+const GROW_SPEED = 6;
 const scene = {
   branches: []
 };
@@ -40,10 +41,10 @@ class Vector2 {
 class Branch {
   constructor(direction, start, index, parent) {
     this.direction = direction;
-    this.start = start;
+    this.startPosition = start;
     this.currentLength = 0;
-    this.length = 20 + Math.random() * 100;
-    this.end = start.plus(direction.multiply(this.length));
+    this.length = 20 + Math.random() * 60;
+    this.initialLength = this.length;
     this.thickness = 2;
     this.currentThickness = 0;
     this.branches = [];
@@ -51,15 +52,29 @@ class Branch {
     this.parent = parent;
   }
 
+  start() {
+    if (this.parent) {
+      return this.parent.end();
+    }
+    return this.startPosition;
+  }
+
+  end() {
+    return this.start().plus(this.direction.multiply(this.currentLength));
+  }
+
   createBranches() {
-    const n = Math.ceil(Math.random() * 4);
+    const splits = [1, 2, 2, 2, 3];
+    // const splits = [2, 3, 4];
+    const n = splits[Math.floor(Math.random() * splits.length)];
+    // const n = Math.ceil(Math.random() * 4);
     const angle = -20 + Math.random() * 40;
     const angles = [angle, -angle, angle + Math.random() * angle];
     // console.log(angles);
     for (let i = 0; i < n; i++) {
       const branch = new Branch(
         this.direction.rotate(angles[i]),
-        this.end,
+        this.end(),
         this.index + 1,
         this
       );
@@ -74,11 +89,22 @@ class Branch {
 
   onChildBranched(childIndex) {
     this.thickness = 3 * (childIndex - this.index);
-    // this.getThicker();
+
+    this.length = this.initialLength * (1 + (childIndex - this.index) / 5);
     if (this.parent) {
       this.parent.onChildBranched(childIndex);
     }
   }
+
+  //   updateStart(start) {
+  //     this.start = start;
+  //     this.end = this.start.plus(this.direction.multiply(this.length));
+  //     if (this.branches.length > 0) {
+  //       this.branches.forEach(branch => {
+  //         branch.updateStart(this.end);
+  //       });
+  //     }
+  //   }
 
   getThicker() {
     this.thickness *= 1.1;
@@ -86,8 +112,9 @@ class Branch {
 
   update() {
     if (this.currentLength < this.length) {
-      this.currentLength += GROW_SPEED;
-    } else if (this.branches.length === 0 && this.index < 8) {
+      this.currentLength +=
+        this.branches.length == 0 ? GROW_SPEED : GROW_SPEED / 5;
+    } else if (this.branches.length === 0 && this.index < 7) {
       this.createBranches();
     }
     if (this.currentThickness < this.thickness) {
@@ -96,13 +123,13 @@ class Branch {
   }
 
   render() {
-    const currentEnd = this.start.plus(
+    const currentEnd = this.start().plus(
       this.direction.multiply(this.currentLength)
     );
     ctx.strokeStyle = "#000";
     ctx.lineWidth = this.currentThickness;
     ctx.beginPath();
-    ctx.moveTo(this.start.x, this.start.y);
+    ctx.moveTo(this.start().x, this.start().y);
     ctx.lineTo(currentEnd.x, currentEnd.y);
     ctx.stroke();
 
