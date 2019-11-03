@@ -1,12 +1,16 @@
 const dpr = window.devicePixelRatio || 1;
 const canvas = document.getElementsByTagName("canvas")[0];
-const width = (canvas.width = window.innerWidth);
-const height = (canvas.height = window.innerHeight);
+const WIDTH = (canvas.width = window.innerWidth);
+const HEIGHT = (canvas.height = window.innerHeight);
 const boundingRect = canvas.getBoundingClientRect();
 canvas.width = boundingRect.width * dpr;
 canvas.height = boundingRect.height * dpr;
 const ctx = canvas.getContext("2d");
 ctx.scale(dpr, dpr);
+
+// Crazy way of having the right scale for every resolution
+const RENDER_SIZE =
+  WIDTH > HEIGHT ? (WIDTH * 0.75) / 1000 : (HEIGHT * 1.2) / 1000;
 
 const GROW_SPEED = 6;
 const scene = {
@@ -126,25 +130,30 @@ class Branch {
     const currentEnd = this.start().plus(
       this.direction.multiply(this.currentLength)
     );
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = this.currentThickness;
-    ctx.beginPath();
-    ctx.moveTo(this.start().x, this.start().y);
-    ctx.lineTo(currentEnd.x, currentEnd.y);
-    ctx.stroke();
 
-    // console.log("Draw from ", this.start, "to", this.end);
+    // Makes sure that the zero point of the world is in the bottom
+    // of the screen and that everything scales nicely on all resolutions
+    const projectedStart = new Vector2(WIDTH / 2, HEIGHT).plus(
+      this.start().multiply(RENDER_SIZE)
+    );
+    const projectedEnd = new Vector2(WIDTH / 2, HEIGHT).plus(
+      currentEnd.multiply(RENDER_SIZE)
+    );
+
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = this.currentThickness * RENDER_SIZE;
+    ctx.beginPath();
+    ctx.moveTo(projectedStart.x, projectedStart.y);
+    ctx.lineTo(projectedEnd.x, projectedEnd.y);
+    ctx.stroke();
   }
 }
-
-const trunk = new Branch(new Vector2(0, -1), new Vector2(width / 2, height), 0);
-scene.branches.push(trunk);
 
 function tick() {
   window.requestAnimationFrame(tick);
 
   ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
   scene.branches.forEach(branch => {
     branch.update();
@@ -155,4 +164,20 @@ function tick() {
   });
 }
 
+function reset() {
+  const trunk = new Branch(new Vector2(0, -1), new Vector2(0, 0), 0);
+  scene.branches = [];
+  scene.branches.push(trunk);
+}
+
+reset();
 tick();
+
+window.addEventListener("resize", function() {
+  onResize();
+  reset();
+});
+
+window.addEventListener("click", function() {
+  reset();
+});
