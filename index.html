@@ -12,10 +12,30 @@
         width: 100vw;
         height: 100vh;
       }
+      #choose-overlay {
+        display: none;
+        position: absolute;
+        text-align: center;
+        width: 400px;
+        height: 300px;
+        left: calc(50% - 200px);
+        top: 50px;
+      }
     </style>
   </head>
   <body>
     <canvas></canvas>
+    <div id="choose-overlay">
+      <h2>Invest in</h2>
+      <button id="splitting-button">Splitting</button>
+      <button id="length-button">Length</button>
+      <button id="thickness-button">Thickness</button>
+      <!-- <button id="curvy-button">Curvyness</button> -->
+      <button id="nothing-button">Nothing</button>
+    </div>
+    <script src="Vector2.js"></script>
+    <script src="StateMachine.js"></script>
+    <script src="Branch.js"></script>
     <script src="main.js"></script>
   </body>
 </html>
